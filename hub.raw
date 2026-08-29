@@ -83,7 +83,7 @@ inputStroke.Transparency = 1
 inputStroke.Thickness = 1
 inputStroke.Parent = keyInput
 
--- Botón Get Key (Ancho 0.44 para dejar separación central)
+-- Botón Get Key (Con espacio horizontal)
 local getKeyBtn = Instance.new("TextButton")
 getKeyBtn.Name = "GetKeyButton"
 getKeyBtn.Size = UDim2.new(0.44, 0, 0, 40)
@@ -102,7 +102,7 @@ local getKeyCorner = Instance.new("UICorner")
 getKeyCorner.CornerRadius = UDim.new(0, 10)
 getKeyCorner.Parent = getKeyBtn
 
--- Botón Submit / Continue (Posición x 0.56 para separar ambos botones)
+-- Botón Submit / Continue
 local submitBtn = Instance.new("TextButton")
 submitBtn.Name = "SubmitButton"
 submitBtn.Size = UDim2.new(0.44, 0, 0, 40)
@@ -150,7 +150,7 @@ TweenService:Create(titleLabel, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum
 
 -- ACCIONES
 getKeyBtn.MouseButton1Click:Connect(function()
-	local keyLink = "https://magichub.getkey.com"
+	local keyLink = "https://magichub-go.lovable.app"
 	if setclipboard then
 		setclipboard(keyLink)
 		statusLabel.TextColor3 = Color3.fromRGB(120, 220, 140)
