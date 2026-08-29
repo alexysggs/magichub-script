@@ -1,293 +1,201 @@
-local CoreGui = game:GetService("CoreGui")
+-- Roblox Executor - Key System Minimalista (MagicHub)
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 
-local SYSTEM_KEY = "MAGIC-2026"
-local DISCORD_LINK = "https://discord.gg/magichub"
+local parentTarget = (gethui and gethui()) or CoreGui
 
--- Eliminar instancias previas
-if CoreGui:FindFirstChild("MagicHubEnterprise") then
-    CoreGui.MagicHubEnterprise:Destroy()
+if parentTarget:FindFirstChild("MagicHub_KeySystem") then
+	parentTarget.MagicHub_KeySystem:Destroy()
 end
 
--- ScreenGui Principal (Capa Superior)
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "MagicHubEnterprise"
+screenGui.Name = "MagicHub_KeySystem"
 screenGui.ResetOnSpawn = false
-screenGui.IgnoreGuiInset = true
-screenGui.DisplayOrder = 999999999
-screenGui.Parent = CoreGui
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = parentTarget
 
--- Ventana Principal (Diseño Ejecutivo / Profesional)
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 0, 0, 0)
-mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-mainFrame.BackgroundColor3 = Color3.fromRGB(15, 18, 24) -- Azul noche profundo
-mainFrame.BackgroundTransparency = 0.02
+mainFrame.Size = UDim2.new(0, 360, 0, 200)
+mainFrame.Position = UDim2.new(0.5, -180, 0.5, -80)
+mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 20)
 mainFrame.BorderSizePixel = 0
-mainFrame.ClipsDescendants = true
-mainFrame.ZIndex = 100
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.BackgroundTransparency = 1
 mainFrame.Parent = screenGui
 
 local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 8)
+mainCorner.CornerRadius = UDim.new(0, 16)
 mainCorner.Parent = mainFrame
 
 local mainStroke = Instance.new("UIStroke")
-mainStroke.Color = Color3.fromRGB(40, 50, 70) -- Borde metálico sutil
+mainStroke.Color = Color3.fromRGB(255, 255, 255)
+mainStroke.Transparency = 1
 mainStroke.Thickness = 1
 mainStroke.Parent = mainFrame
 
--- Barra Superior de Navegación
-local topBar = Instance.new("Frame")
-topBar.Name = "TopBar"
-topBar.Size = UDim2.new(1, 0, 0, 40)
-topBar.BackgroundColor3 = Color3.fromRGB(22, 27, 36)
-topBar.BorderSizePixel = 0
-topBar.ZIndex = 101
-topBar.Parent = mainFrame
+local titleContainer = Instance.new("Frame")
+titleContainer.Name = "TitleContainer"
+titleContainer.Size = UDim2.new(1, -40, 0, 30)
+titleContainer.Position = UDim2.new(0, 20, 0, 18)
+titleContainer.BackgroundTransparency = 1
+titleContainer.ClipsDescendants = true
+titleContainer.Parent = mainFrame
 
-Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, 8)
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "TitleLabel"
+titleLabel.Size = UDim2.new(1, 0, 1, 0)
+titleLabel.Position = UDim2.new(0, -20, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = 'Key System  ·  <font color="#007AFF">MagicHub</font>'
+titleLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 14
+titleLabel.RichText = true
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.TextTransparency = 1
+titleLabel.Parent = titleContainer
 
--- Icono de Estado / Escudo
-local statusDot = Instance.new("Frame")
-statusDot.Size = UDim2.new(0, 8, 0, 8)
-statusDot.Position = UDim2.new(0, 16, 0.5, -4)
-statusDot.BackgroundColor3 = Color3.fromRGB(0, 168, 255)
-statusDot.BorderSizePixel = 0
-statusDot.ZIndex = 102
-statusDot.Parent = topBar
-Instance.new("UICorner", statusDot).CornerRadius = UDim.new(1, 0)
-
--- Título Formal
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -70, 1, 0)
-title.Position = UDim2.new(0, 32, 0, 0)
-title.BackgroundTransparency = 1
-title.Text = "MAGIC HUB  |  AUTHENTICATION SYSTEM"
-title.TextColor3 = Color3.fromRGB(200, 210, 225)
-title.TextSize = 11
-title.Font = Enum.Font.GothamMedium
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.ZIndex = 102
-title.Parent = topBar
-
--- Botón Cerrar (Formato Empresarial)
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 28, 0, 28)
-closeBtn.Position = UDim2.new(1, -34, 0.5, -14)
-closeBtn.BackgroundTransparency = 1
-closeBtn.Text = "✕"
-closeBtn.TextColor3 = Color3.fromRGB(120, 135, 155)
-closeBtn.TextSize = 12
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.ZIndex = 102
-closeBtn.Parent = topBar
-
--- Campo de Entrada de Licencia
 local keyInput = Instance.new("TextBox")
-keyInput.Size = UDim2.new(1, -32, 0, 40)
-keyInput.Position = UDim2.new(0, 16, 0, 54)
-keyInput.BackgroundColor3 = Color3.fromRGB(10, 12, 16)
-keyInput.PlaceholderText = "Ingrese su clave de licencia..."
-keyInput.PlaceholderColor3 = Color3.fromRGB(80, 95, 115)
+keyInput.Name = "KeyInput"
+keyInput.Size = UDim2.new(1, -40, 0, 42)
+keyInput.Position = UDim2.new(0, 20, 0, 62)
+keyInput.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
+keyInput.BackgroundTransparency = 1
+keyInput.PlaceholderText = "Paste key here..."
+keyInput.PlaceholderColor3 = Color3.fromRGB(90, 90, 100)
 keyInput.Text = ""
-keyInput.TextColor3 = Color3.fromRGB(240, 245, 255)
-keyInput.TextSize = 12
-keyInput.Font = Enum.Font.Gotham
+keyInput.TextColor3 = Color3.fromRGB(240, 240, 245)
+keyInput.Font = Enum.Font.GothamMedium
+keyInput.TextSize = 13
 keyInput.ClearTextOnFocus = false
-keyInput.ZIndex = 101
+keyInput.TextTransparency = 1
 keyInput.Parent = mainFrame
-Instance.new("UICorner", keyInput).CornerRadius = UDim.new(0, 6)
+
+local inputCorner = Instance.new("UICorner")
+inputCorner.CornerRadius = UDim.new(0, 10)
+inputCorner.Parent = keyInput
 
 local inputStroke = Instance.new("UIStroke")
-inputStroke.Color = Color3.fromRGB(30, 38, 52)
+inputStroke.Color = Color3.fromRGB(255, 255, 255)
+inputStroke.Transparency = 1
 inputStroke.Thickness = 1
 inputStroke.Parent = keyInput
 
--- Botón Principal: Validar Clave
-local verifyBtn = Instance.new("TextButton")
-verifyBtn.Size = UDim2.new(0.5, -20, 0, 36)
-verifyBtn.Position = UDim2.new(0, 16, 0, 106)
-verifyBtn.BackgroundColor3 = Color3.fromRGB(0, 102, 204) -- Azul ejecutivo
-verifyBtn.Text = "VALIDAR CLAVE"
-verifyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-verifyBtn.TextSize = 11
-verifyBtn.Font = Enum.Font.GothamBold
-verifyBtn.AutoButtonColor = false
-verifyBtn.ZIndex = 101
-verifyBtn.Parent = mainFrame
-Instance.new("UICorner", verifyBtn).CornerRadius = UDim.new(0, 6)
+-- Botón Get Key (Ancho 0.44 para dejar separación central)
+local getKeyBtn = Instance.new("TextButton")
+getKeyBtn.Name = "GetKeyButton"
+getKeyBtn.Size = UDim2.new(0.44, 0, 0, 40)
+getKeyBtn.Position = UDim2.new(0, 20, 0, 118)
+getKeyBtn.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
+getKeyBtn.BackgroundTransparency = 1
+getKeyBtn.Text = "Get Key"
+getKeyBtn.TextColor3 = Color3.fromRGB(180, 180, 190)
+getKeyBtn.TextTransparency = 1
+getKeyBtn.Font = Enum.Font.GothamMedium
+getKeyBtn.TextSize = 12
+getKeyBtn.AutoButtonColor = false
+getKeyBtn.Parent = mainFrame
 
--- Botón Secundario: Obtener Clave
-local discordBtn = Instance.new("TextButton")
-discordBtn.Size = UDim2.new(0.5, -20, 0, 36)
-discordBtn.Position = UDim2.new(0.5, 4, 0, 106)
-discordBtn.BackgroundColor3 = Color3.fromRGB(25, 32, 44)
-discordBtn.Text = "OBTENER LICENCIA"
-discordBtn.TextColor3 = Color3.fromRGB(180, 195, 215)
-discordBtn.TextSize = 11
-discordBtn.Font = Enum.Font.GothamBold
-discordBtn.AutoButtonColor = false
-discordBtn.ZIndex = 101
-discordBtn.Parent = mainFrame
-Instance.new("UICorner", discordBtn).CornerRadius = UDim.new(0, 6)
+local getKeyCorner = Instance.new("UICorner")
+getKeyCorner.CornerRadius = UDim.new(0, 10)
+getKeyCorner.Parent = getKeyBtn
 
-local discordStroke = Instance.new("UIStroke")
-discordStroke.Color = Color3.fromRGB(40, 52, 70)
-discordStroke.Thickness = 1
-discordStroke.Parent = discordBtn
+-- Botón Submit / Continue (Posición x 0.56 para separar ambos botones)
+local submitBtn = Instance.new("TextButton")
+submitBtn.Name = "SubmitButton"
+submitBtn.Size = UDim2.new(0.44, 0, 0, 40)
+submitBtn.Position = UDim2.new(0.56, -20, 0, 118)
+submitBtn.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
+submitBtn.BackgroundTransparency = 1
+submitBtn.Text = "Continue"
+submitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+submitBtn.TextTransparency = 1
+submitBtn.Font = Enum.Font.GothamBold
+submitBtn.TextSize = 12
+submitBtn.AutoButtonColor = false
+submitBtn.Parent = mainFrame
 
--- Registro de Estado / Feedback de Sistema
+local submitCorner = Instance.new("UICorner")
+submitCorner.CornerRadius = UDim.new(0, 10)
+submitCorner.Parent = submitBtn
+
 local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -32, 0, 20)
-statusLabel.Position = UDim2.new(0, 16, 0, 150)
+statusLabel.Size = UDim2.new(1, -40, 0, 18)
+statusLabel.Position = UDim2.new(0, 20, 0, 168)
 statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "Estado: Esperando autenticación..."
-statusLabel.TextColor3 = Color3.fromRGB(110, 125, 145)
-statusLabel.TextSize = 10
+statusLabel.Text = ""
+statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
 statusLabel.Font = Enum.Font.Gotham
-statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-statusLabel.ZIndex = 101
+statusLabel.TextSize = 11
 statusLabel.Parent = mainFrame
 
----------------------------------------------------------
--- INTERACTIVIDAD Y LÓGICA
----------------------------------------------------------
+-- ANIMACIONES DE ENTRADA
+TweenService:Create(mainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
+	BackgroundTransparency = 0,
+	Position = UDim2.new(0.5, -180, 0.5, -100)
+}):Play()
+TweenService:Create(mainStroke, TweenInfo.new(0.35), {Transparency = 0.92}):Play()
 
-local function setupHover(btn, normalBg, hoverBg, strokeObj, normalStroke, hoverStroke)
-    btn.MouseEnter:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = hoverBg}):Play()
-        if strokeObj then
-            TweenService:Create(strokeObj, TweenInfo.new(0.15), {Color = hoverStroke}):Play()
-        end
-    end)
-    btn.MouseLeave:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = normalBg}):Play()
-        if strokeObj then
-            TweenService:Create(strokeObj, TweenInfo.new(0.15), {Color = normalStroke}):Play()
-        end
-    end)
-end
+TweenService:Create(keyInput, TweenInfo.new(0.3), {BackgroundTransparency = 0, TextTransparency = 0}):Play()
+TweenService:Create(inputStroke, TweenInfo.new(0.3), {Transparency = 0.94}):Play()
+TweenService:Create(getKeyBtn, TweenInfo.new(0.3), {BackgroundTransparency = 0, TextTransparency = 0}):Play()
+TweenService:Create(submitBtn, TweenInfo.new(0.3), {BackgroundTransparency = 0, TextTransparency = 0}):Play()
 
-setupHover(verifyBtn, Color3.fromRGB(0, 102, 204), Color3.fromRGB(0, 122, 240))
-setupHover(discordBtn, Color3.fromRGB(25, 32, 44), Color3.fromRGB(35, 44, 60), discordStroke, Color3.fromRGB(40, 52, 70), Color3.fromRGB(60, 78, 105))
+TweenService:Create(titleLabel, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+	Position = UDim2.new(0, 0, 0, 0),
+	TextTransparency = 0
+}):Play()
 
-closeBtn.MouseEnter:Connect(function()
-    TweenService:Create(closeBtn, TweenInfo.new(0.15), {TextColor3 = Color3.fromRGB(230, 80, 80)}):Play()
-end)
-closeBtn.MouseLeave:Connect(function()
-    TweenService:Create(closeBtn, TweenInfo.new(0.15), {TextColor3 = Color3.fromRGB(120, 135, 155)}):Play()
-end)
-
--- Sistema de Arrastre Fluido
-local dragging, dragInput, dragStart, startPos
-
-topBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
-
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
+-- ACCIONES
+getKeyBtn.MouseButton1Click:Connect(function()
+	local keyLink = "https://magichub.getkey.com"
+	if setclipboard then
+		setclipboard(keyLink)
+		statusLabel.TextColor3 = Color3.fromRGB(120, 220, 140)
+		statusLabel.Text = "Copied to clipboard!"
+	else
+		statusLabel.TextColor3 = Color3.fromRGB(255, 180, 60)
+		statusLabel.Text = keyLink
+	end
 end)
 
-topBar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
+local VALID_KEY = "MagicHub2026"
 
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        mainFrame.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset + delta.X,
-            startPos.Y.Scale, startPos.Y.Offset + delta.Y
-        )
-    end
-end)
-
--- Animación de Entrada Suave
-TweenService:Create(
-    mainFrame, 
-    TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), 
-    {Size = UDim2.new(0, 380, 0, 180)}
-):Play()
-
--- Cierre
-closeBtn.MouseButton1Click:Connect(function()
-    local closeTween = TweenService:Create(mainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)})
-    closeTween:Play()
-    closeTween.Completed:Connect(function()
-        screenGui:Destroy()
-    end)
-end)
-
--- Transición de Verificación Completa
-local function triggerOverlay()
-    local closeTween = TweenService:Create(
-        mainFrame, 
-        TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In), 
-        {Size = UDim2.new(0, 0, 0, 0)}
-    )
-    closeTween:Play()
-
-    closeTween.Completed:Connect(function()
-        mainFrame:Destroy()
-
-        local fullImage = Instance.new("ImageLabel")
-        fullImage.Name = "OverlayImage"
-        fullImage.Size = UDim2.new(3, 0, 3, 0)
-        fullImage.Position = UDim2.new(0.5, 0, 0.5, 0)
-        fullImage.AnchorPoint = Vector2.new(0.5, 0.5)
-        fullImage.BackgroundTransparency = 1
-        fullImage.Image = "rbxthumb://type=Asset&id=78581690845645&w=420&h=420"
-        fullImage.ScaleType = Enum.ScaleType.Fit
-        fullImage.ImageTransparency = 1
-        fullImage.ZIndex = 999999999
-        fullImage.Parent = screenGui
-
-        TweenService:Create(
-            fullImage, 
-            TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), 
-            {ImageTransparency = 0}
-        ):Play()
-    end)
-end
-
--- Acción Copiar Enlace
-discordBtn.MouseButton1Click:Connect(function()
-    if setclipboard then
-        setclipboard(DISCORD_LINK)
-    end
-    triggerOverlay()
-end)
-
--- Acción Validación
-verifyBtn.MouseButton1Click:Connect(function()
-    local enteredKey = keyInput.Text:gsub("%s+", "")
-
-    if enteredKey == SYSTEM_KEY then
-        statusLabel.Text = "Estado: Licencia verificada correctamente."
-        statusLabel.TextColor3 = Color3.fromRGB(40, 200, 120)
-        TweenService:Create(statusDot, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 200, 120)}):Play()
-        task.wait(0.3)
-        triggerOverlay()
-    else
-        statusLabel.Text = "Estado: Clave no válida o expirada."
-        statusLabel.TextColor3 = Color3.fromRGB(240, 70, 70)
-        TweenService:Create(statusDot, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(240, 70, 70)}):Play()
-        
-        TweenService:Create(inputStroke, TweenInfo.new(0.15), {Color = Color3.fromRGB(240, 70, 70)}):Play()
-        task.wait(0.5)
-        TweenService:Create(inputStroke, TweenInfo.new(0.3), {Color = Color3.fromRGB(30, 38, 52)}):Play()
-    end
+submitBtn.MouseButton1Click:Connect(function()
+	if keyInput.Text == VALID_KEY then
+		statusLabel.TextColor3 = Color3.fromRGB(120, 220, 140)
+		statusLabel.Text = "Access Granted"
+		
+		task.wait(0.3)
+		local exitTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			BackgroundTransparency = 1,
+			Position = UDim2.new(0.5, -180, 0.5, -80)
+		})
+		TweenService:Create(mainStroke, TweenInfo.new(0.2), {Transparency = 1}):Play()
+		TweenService:Create(keyInput, TweenInfo.new(0.2), {BackgroundTransparency = 1, TextTransparency = 1}):Play()
+		TweenService:Create(getKeyBtn, TweenInfo.new(0.2), {BackgroundTransparency = 1, TextTransparency = 1}):Play()
+		TweenService:Create(submitBtn, TweenInfo.new(0.2), {BackgroundTransparency = 1, TextTransparency = 1}):Play()
+		TweenService:Create(titleLabel, TweenInfo.new(0.2), {TextTransparency = 1}):Play()
+		
+		exitTween:Play()
+		exitTween.Completed:Connect(function()
+			screenGui:Destroy()
+		end)
+	else
+		statusLabel.TextColor3 = Color3.fromRGB(255, 90, 90)
+		statusLabel.Text = "Invalid key. Try again."
+		
+		local origPos = UDim2.new(0.5, -180, 0.5, -100)
+		task.spawn(function()
+			for i = 1, 3 do
+				mainFrame.Position = origPos + UDim2.new(0, -4, 0, 0)
+				task.wait(0.04)
+				mainFrame.Position = origPos + UDim2.new(0, 4, 0, 0)
+				task.wait(0.04)
+			end
+			mainFrame.Position = origPos
+		end)
+	end
 end)
