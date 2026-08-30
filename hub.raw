@@ -83,7 +83,7 @@ inputStroke.Transparency = 1
 inputStroke.Thickness = 1
 inputStroke.Parent = keyInput
 
--- Botón Get Key (Con espacio horizontal)
+-- Botón Get Key
 local getKeyBtn = Instance.new("TextButton")
 getKeyBtn.Name = "GetKeyButton"
 getKeyBtn.Size = UDim2.new(0.44, 0, 0, 40)
@@ -161,7 +161,8 @@ getKeyBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
-local VALID_KEY = "MagicHub2026"
+-- Clave configurada
+local VALID_KEY = "MHUB2026TT"
 
 submitBtn.MouseButton1Click:Connect(function()
 	if keyInput.Text == VALID_KEY then
@@ -182,6 +183,13 @@ submitBtn.MouseButton1Click:Connect(function()
 		exitTween:Play()
 		exitTween.Completed:Connect(function()
 			screenGui:Destroy()
+			
+			-- =========================================================
+			-- AQUÍ SE EJECUTA EL SCRIPT PRINCIPAL DE MAGICHUB
+			-- =========================================================
+			print("MagicHub iniciado correctamente.")
+			-- Pega tu código o carga con loadstring aquí:
+			-- loadstring(game:HttpGet("TU_URL_AQUI"))()
 		end)
 	else
 		statusLabel.TextColor3 = Color3.fromRGB(255, 90, 90)
