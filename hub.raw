@@ -161,7 +161,6 @@ getKeyBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Clave configurada
 local VALID_KEY = "MHUB2026TT"
 
 submitBtn.MouseButton1Click:Connect(function()
@@ -184,12 +183,14 @@ submitBtn.MouseButton1Click:Connect(function()
 		exitTween.Completed:Connect(function()
 			screenGui:Destroy()
 			
-			-- =========================================================
-			-- AQUÍ SE EJECUTA EL SCRIPT PRINCIPAL DE MAGICHUB
-			-- =========================================================
-			print("MagicHub iniciado correctamente.")
-			-- Pega tu código o carga con loadstring aquí:
-			-- loadstring(game:HttpGet("TU_URL_AQUI"))()
+			-- Ejecución remota del script RAW de GitHub
+			local success, err = pcall(function()
+				loadstring(game:HttpGet("https://raw.githubusercontent.com/alex2013palomo-byte/luamaser/main/masterlua.raw"))()
+			end)
+			
+			if not success then
+				warn("Error al cargar el script:", err)
+			end
 		end)
 	else
 		statusLabel.TextColor3 = Color3.fromRGB(255, 90, 90)
