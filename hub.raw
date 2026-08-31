@@ -1,203 +1,314 @@
--- Roblox Executor - Key System Minimalista (MagicHub)
+-- Roblox Executor - Key System Dinámico (MagicHub)
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
 
+local LocalPlayer = Players.LocalPlayer
 local parentTarget = (gethui and gethui()) or CoreGui
 
-if parentTarget:FindFirstChild("MagicHub_KeySystem") then
-	parentTarget.MagicHub_KeySystem:Destroy()
+if parentTarget:FindFirstChild("MagicHub_KeySystem_v2") then
+	parentTarget.MagicHub_KeySystem_v2:Destroy()
 end
 
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "MagicHub_KeySystem"
+screenGui.Name = "MagicHub_KeySystem_v2"
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = parentTarget
 
+-- Configuración de Enlaces
+local KEY_LINK = "https://magichub-go.lovable.app/"
+local JSON_KEYS_URL = "https://magichub-go.lovable.app/keysis.json"
+
+-- Función para verificar la clave desde el JSON remoto
+local function verifyKeyOnline(userKey)
+	local success, response = pcall(function()
+		return game:HttpGet(JSON_KEYS_URL)
+	end)
+
+	if not success or not response then
+		return false, "Error de conexión al verificar la clave."
+	end
+
+	local parseSuccess, data = pcall(function()
+		return HttpService:JSONDecode(response)
+	end)
+
+	if not parseSuccess or not data then
+		return false, "Error al procesar los datos del servidor."
+	end
+
+	-- Soporte si el JSON es una lista: ["KEY1", "KEY2"]
+	if type(data) == "table" then
+		for _, key in ipairs(data) do
+			if tostring(key) == userKey then
+				return true
+			end
+		end
+		-- Soporte si el JSON tiene clave directa: { "key": "VALOR" } o { "keys": [...] }
+		if data.key and tostring(data.key) == userKey then
+			return true
+		elseif type(data.keys) == "table" then
+			for _, key in ipairs(data.keys) do
+				if tostring(key) == userKey then
+					return true
+				end
+			end
+		end
+	end
+
+	return false, "Clave incorrecta. Inténtalo de nuevo."
+end
+
+-- 2. Notificación Superior Central Flotante
+local topNotification = Instance.new("Frame")
+topNotification.Name = "TopNotification"
+topNotification.Size = UDim2.new(0, 280, 0, 38)
+topNotification.Position = UDim2.new(0.5, -140, 0, -50)
+topNotification.BackgroundColor3 = Color3.fromRGB(22, 24, 30)
+topNotification.BorderSizePixel = 0
+topNotification.Parent = screenGui
+
+local notifCorner = Instance.new("UICorner")
+notifCorner.CornerRadius = UDim.new(0, 8)
+notifCorner.Parent = topNotification
+
+local notifStroke = Instance.new("UIStroke")
+notifStroke.Color = Color3.fromRGB(0, 122, 255)
+notifStroke.Thickness = 1
+notifStroke.Parent = topNotification
+
+local notifText = Instance.new("TextLabel")
+notifText.Size = UDim2.new(1, 0, 1, 0)
+notifText.BackgroundTransparency = 1
+notifText.Text = ""
+notifText.TextColor3 = Color3.fromRGB(240, 240, 245)
+notifText.Font = Enum.Font.GothamMedium
+notifText.TextSize = 12
+notifText.Parent = topNotification
+
+local function showNotification(text, color, strokeColor)
+	notifText.Text = text
+	notifText.TextColor3 = color or Color3.fromRGB(240, 240, 245)
+	notifStroke.Color = strokeColor or Color3.fromRGB(0, 122, 255)
+	
+	topNotification:TweenPosition(
+		UDim2.new(0.5, -140, 0, 18),
+		Enum.EasingDirection.Out,
+		Enum.EasingStyle.Quart,
+		0.3,
+		true
+	)
+	
+	task.delay(3, function()
+		topNotification:TweenPosition(
+			UDim2.new(0.5, -140, 0, -50),
+			Enum.EasingDirection.In,
+			Enum.EasingStyle.Quart,
+			0.3,
+			true
+		)
+	end)
+end
+
+-- 3. Ventana Principal
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 360, 0, 200)
-mainFrame.Position = UDim2.new(0.5, -180, 0.5, -80)
-mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 20)
+mainFrame.Size = UDim2.new(0, 360, 0, 150)
+mainFrame.Position = UDim2.new(0.5, -180, 0.5, -75)
+mainFrame.BackgroundColor3 = Color3.fromRGB(18, 19, 23)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Draggable = true
-mainFrame.BackgroundTransparency = 1
+mainFrame.ClipsDescendants = true
 mainFrame.Parent = screenGui
 
 local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 16)
+mainCorner.CornerRadius = UDim.new(0, 12)
 mainCorner.Parent = mainFrame
 
 local mainStroke = Instance.new("UIStroke")
-mainStroke.Color = Color3.fromRGB(255, 255, 255)
-mainStroke.Transparency = 1
+mainStroke.Color = Color3.fromRGB(40, 42, 50)
 mainStroke.Thickness = 1
 mainStroke.Parent = mainFrame
 
-local titleContainer = Instance.new("Frame")
-titleContainer.Name = "TitleContainer"
-titleContainer.Size = UDim2.new(1, -40, 0, 30)
-titleContainer.Position = UDim2.new(0, 20, 0, 18)
-titleContainer.BackgroundTransparency = 1
-titleContainer.ClipsDescendants = true
-titleContainer.Parent = mainFrame
+-- 4. Header de Usuario + Título
+local userHeader = Instance.new("Frame")
+userHeader.Name = "UserHeader"
+userHeader.Size = UDim2.new(1, -24, 0, 40)
+userHeader.Position = UDim2.new(0, 12, 0, 10)
+userHeader.BackgroundTransparency = 1
+userHeader.Parent = mainFrame
+
+local avatarImage = Instance.new("ImageLabel")
+avatarImage.Name = "AvatarImage"
+avatarImage.Size = UDim2.new(0, 38, 0, 38)
+avatarImage.Position = UDim2.new(0, 0, 0, 1)
+avatarImage.BackgroundColor3 = Color3.fromRGB(28, 30, 36)
+avatarImage.BorderSizePixel = 0
+avatarImage.Parent = userHeader
+
+task.spawn(function()
+	if LocalPlayer then
+		local content, isReady = Players:GetUserThumbnailAsync(
+			LocalPlayer.UserId,
+			Enum.ThumbnailType.HeadShot,
+			Enum.ThumbnailSize.Size100x100
+		)
+		if isReady then
+			avatarImage.Image = content
+		end
+	end
+end)
+
+local avatarCorner = Instance.new("UICorner")
+avatarCorner.CornerRadius = UDim.new(1, 0)
+avatarCorner.Parent = avatarImage
+
+local displayNameLabel = Instance.new("TextLabel")
+displayNameLabel.Name = "DisplayName"
+displayNameLabel.Size = UDim2.new(0, 140, 0, 18)
+displayNameLabel.Position = UDim2.new(0, 46, 0, 2)
+displayNameLabel.BackgroundTransparency = 1
+displayNameLabel.Text = LocalPlayer and LocalPlayer.DisplayName or "miau123CALVO"
+displayNameLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
+displayNameLabel.Font = Enum.Font.GothamBold
+displayNameLabel.TextSize = 14
+displayNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+displayNameLabel.Parent = userHeader
+
+local usernameLabel = Instance.new("TextLabel")
+usernameLabel.Name = "Username"
+usernameLabel.Size = UDim2.new(0, 140, 0, 14)
+usernameLabel.Position = UDim2.new(0, 46, 0, 20)
+usernameLabel.BackgroundTransparency = 1
+usernameLabel.Text = "@" .. (LocalPlayer and LocalPlayer.Name or "miau123CALVO")
+usernameLabel.TextColor3 = Color3.fromRGB(120, 122, 135)
+usernameLabel.Font = Enum.Font.Gotham
+usernameLabel.TextSize = 11
+usernameLabel.TextXAlignment = Enum.TextXAlignment.Left
+usernameLabel.Parent = userHeader
 
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Name = "TitleLabel"
-titleLabel.Size = UDim2.new(1, 0, 1, 0)
-titleLabel.Position = UDim2.new(0, -20, 0, 0)
+titleLabel.Size = UDim2.new(0, 140, 0, 20)
+titleLabel.Position = UDim2.new(0, 190, 0, 12)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = 'Key System  ·  <font color="#007AFF">MagicHub</font>'
-titleLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
+titleLabel.Text = "MagicHub · Key System"
+titleLabel.TextColor3 = Color3.fromRGB(140, 145, 160)
 titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 14
-titleLabel.RichText = true
+titleLabel.TextSize = 12
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.TextTransparency = 1
-titleLabel.Parent = titleContainer
+titleLabel.Parent = userHeader
 
+-- 5. Campo de Texto (Input Key)
 local keyInput = Instance.new("TextBox")
 keyInput.Name = "KeyInput"
-keyInput.Size = UDim2.new(1, -40, 0, 42)
-keyInput.Position = UDim2.new(0, 20, 0, 62)
-keyInput.BackgroundColor3 = Color3.fromRGB(26, 26, 30)
-keyInput.BackgroundTransparency = 1
-keyInput.PlaceholderText = "Paste key here..."
-keyInput.PlaceholderColor3 = Color3.fromRGB(90, 90, 100)
+keyInput.Size = UDim2.new(1, -24, 0, 38)
+keyInput.Position = UDim2.new(0, 12, 0, 56)
+keyInput.BackgroundColor3 = Color3.fromRGB(25, 27, 32)
+keyInput.BorderSizePixel = 0
+keyInput.PlaceholderText = "Pega tu clave aquí..."
+keyInput.PlaceholderColor3 = Color3.fromRGB(90, 92, 105)
 keyInput.Text = ""
 keyInput.TextColor3 = Color3.fromRGB(240, 240, 245)
 keyInput.Font = Enum.Font.GothamMedium
 keyInput.TextSize = 13
 keyInput.ClearTextOnFocus = false
-keyInput.TextTransparency = 1
 keyInput.Parent = mainFrame
 
 local inputCorner = Instance.new("UICorner")
-inputCorner.CornerRadius = UDim.new(0, 10)
+inputCorner.CornerRadius = UDim.new(0, 8)
 inputCorner.Parent = keyInput
 
-local inputStroke = Instance.new("UIStroke")
-inputStroke.Color = Color3.fromRGB(255, 255, 255)
-inputStroke.Transparency = 1
-inputStroke.Thickness = 1
-inputStroke.Parent = keyInput
-
--- Botón Get Key
+-- 6. Botones
 local getKeyBtn = Instance.new("TextButton")
 getKeyBtn.Name = "GetKeyButton"
-getKeyBtn.Size = UDim2.new(0.44, 0, 0, 40)
-getKeyBtn.Position = UDim2.new(0, 20, 0, 118)
-getKeyBtn.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
-getKeyBtn.BackgroundTransparency = 1
+getKeyBtn.Size = UDim2.new(0.5, -16, 0, 38)
+getKeyBtn.Position = UDim2.new(0, 12, 0, 100)
+getKeyBtn.BackgroundColor3 = Color3.fromRGB(28, 30, 36)
+getKeyBtn.BorderSizePixel = 0
 getKeyBtn.Text = "Get Key"
-getKeyBtn.TextColor3 = Color3.fromRGB(180, 180, 190)
-getKeyBtn.TextTransparency = 1
-getKeyBtn.Font = Enum.Font.GothamMedium
+getKeyBtn.TextColor3 = Color3.fromRGB(200, 205, 215)
+getKeyBtn.Font = Enum.Font.GothamBold
 getKeyBtn.TextSize = 12
 getKeyBtn.AutoButtonColor = false
 getKeyBtn.Parent = mainFrame
 
 local getKeyCorner = Instance.new("UICorner")
-getKeyCorner.CornerRadius = UDim.new(0, 10)
+getKeyCorner.CornerRadius = UDim.new(0, 8)
 getKeyCorner.Parent = getKeyBtn
 
--- Botón Submit / Continue
 local submitBtn = Instance.new("TextButton")
 submitBtn.Name = "SubmitButton"
-submitBtn.Size = UDim2.new(0.44, 0, 0, 40)
-submitBtn.Position = UDim2.new(0.56, -20, 0, 118)
+submitBtn.Size = UDim2.new(0.5, -16, 0, 38)
+submitBtn.Position = UDim2.new(0.5, 4, 0, 100)
 submitBtn.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
-submitBtn.BackgroundTransparency = 1
-submitBtn.Text = "Continue"
+submitBtn.BorderSizePixel = 0
+submitBtn.Text = "Continuar"
 submitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-submitBtn.TextTransparency = 1
 submitBtn.Font = Enum.Font.GothamBold
 submitBtn.TextSize = 12
 submitBtn.AutoButtonColor = false
 submitBtn.Parent = mainFrame
 
 local submitCorner = Instance.new("UICorner")
-submitCorner.CornerRadius = UDim.new(0, 10)
+submitCorner.CornerRadius = UDim.new(0, 8)
 submitCorner.Parent = submitBtn
 
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -40, 0, 18)
-statusLabel.Position = UDim2.new(0, 20, 0, 168)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = ""
-statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
-statusLabel.Font = Enum.Font.Gotham
-statusLabel.TextSize = 11
-statusLabel.Parent = mainFrame
+-- ACCIONES DE BOTONES
 
--- ANIMACIONES DE ENTRADA
-TweenService:Create(mainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
-	BackgroundTransparency = 0,
-	Position = UDim2.new(0.5, -180, 0.5, -100)
-}):Play()
-TweenService:Create(mainStroke, TweenInfo.new(0.35), {Transparency = 0.92}):Play()
-
-TweenService:Create(keyInput, TweenInfo.new(0.3), {BackgroundTransparency = 0, TextTransparency = 0}):Play()
-TweenService:Create(inputStroke, TweenInfo.new(0.3), {Transparency = 0.94}):Play()
-TweenService:Create(getKeyBtn, TweenInfo.new(0.3), {BackgroundTransparency = 0, TextTransparency = 0}):Play()
-TweenService:Create(submitBtn, TweenInfo.new(0.3), {BackgroundTransparency = 0, TextTransparency = 0}):Play()
-
-TweenService:Create(titleLabel, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-	Position = UDim2.new(0, 0, 0, 0),
-	TextTransparency = 0
-}):Play()
-
--- ACCIONES
+-- Get Key: Copia el enlace directo de obtención de key
 getKeyBtn.MouseButton1Click:Connect(function()
-	local keyLink = "https://magichub-go.lovable.app"
 	if setclipboard then
-		setclipboard(keyLink)
-		statusLabel.TextColor3 = Color3.fromRGB(120, 220, 140)
-		statusLabel.Text = "Copied to clipboard!"
+		setclipboard(KEY_LINK)
+		showNotification("¡Enlace copiado al portapapeles!", Color3.fromRGB(100, 220, 130), Color3.fromRGB(100, 220, 130))
 	else
-		statusLabel.TextColor3 = Color3.fromRGB(255, 180, 60)
-		statusLabel.Text = keyLink
+		showNotification("Link: " .. KEY_LINK, Color3.fromRGB(255, 180, 60), Color3.fromRGB(255, 180, 60))
 	end
 end)
 
-local VALID_KEY = "MHUB2026TT"
-
+-- Continuar: Verifica la clave con el JSON remoto
 submitBtn.MouseButton1Click:Connect(function()
-	if keyInput.Text == VALID_KEY then
-		statusLabel.TextColor3 = Color3.fromRGB(120, 220, 140)
-		statusLabel.Text = "Access Granted"
+	local userEnteredKey = keyInput.Text:gsub("%s+", "")
+	
+	if userEnteredKey == "" then
+		showNotification("Por favor, introduce una clave.", Color3.fromRGB(255, 180, 60), Color3.fromRGB(255, 180, 60))
+		return
+	end
+	
+	showNotification("Verificando clave...", Color3.fromRGB(140, 145, 160), Color3.fromRGB(140, 145, 160))
+
+	task.spawn(function()
+		local isValid, message = verifyKeyOnline(userEnteredKey)
 		
-		task.wait(0.3)
-		local exitTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-			BackgroundTransparency = 1,
-			Position = UDim2.new(0.5, -180, 0.5, -80)
-		})
-		TweenService:Create(mainStroke, TweenInfo.new(0.2), {Transparency = 1}):Play()
-		TweenService:Create(keyInput, TweenInfo.new(0.2), {BackgroundTransparency = 1, TextTransparency = 1}):Play()
-		TweenService:Create(getKeyBtn, TweenInfo.new(0.2), {BackgroundTransparency = 1, TextTransparency = 1}):Play()
-		TweenService:Create(submitBtn, TweenInfo.new(0.2), {BackgroundTransparency = 1, TextTransparency = 1}):Play()
-		TweenService:Create(titleLabel, TweenInfo.new(0.2), {TextTransparency = 1}):Play()
-		
-		exitTween:Play()
-		exitTween.Completed:Connect(function()
-			screenGui:Destroy()
+		if isValid then
+			showNotification("Acceso concedido. Cargando...", Color3.fromRGB(100, 220, 130), Color3.fromRGB(100, 220, 130))
 			
-			-- Ejecución remota del script RAW de GitHub
-			local success, err = pcall(function()
-				loadstring(game:HttpGet("https://raw.githubusercontent.com/alex2013palomo-byte/luamaser/main/masterlua.raw"))()
+			task.wait(0.4)
+			
+			local exitTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				Position = UDim2.new(0.5, -180, 0.5, -50),
+				BackgroundTransparency = 1
+			})
+			
+			exitTween:Play()
+			exitTween.Completed:Connect(function()
+				screenGui:Destroy()
+				
+				local success, err = pcall(function()
+					loadstring(game:HttpGet("https://raw.githubusercontent.com/alex2013palomo-byte/luamaser/main/masterlua.raw"))()
+				end)
+				
+				if not success then
+					warn("Error al cargar el script:", err)
+				end
 			end)
+		else
+			showNotification(message or "Clave incorrecta. Inténtalo de nuevo.", Color3.fromRGB(255, 90, 90), Color3.fromRGB(255, 90, 90))
 			
-			if not success then
-				warn("Error al cargar el script:", err)
-			end
-		end)
-	else
-		statusLabel.TextColor3 = Color3.fromRGB(255, 90, 90)
-		statusLabel.Text = "Invalid key. Try again."
-		
-		local origPos = UDim2.new(0.5, -180, 0.5, -100)
-		task.spawn(function()
+			local origPos = UDim2.new(0.5, -180, 0.5, -75)
 			for i = 1, 3 do
 				mainFrame.Position = origPos + UDim2.new(0, -4, 0, 0)
 				task.wait(0.04)
@@ -205,6 +316,6 @@ submitBtn.MouseButton1Click:Connect(function()
 				task.wait(0.04)
 			end
 			mainFrame.Position = origPos
-		end)
-	end
+		end
+	end)
 end)
