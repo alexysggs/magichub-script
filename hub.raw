@@ -10,50 +10,246 @@ local parentTarget = (gethui and gethui()) or CoreGui
 if parentTarget:FindFirstChild("MagicHub_KeySystem_v2") then
 	parentTarget.MagicHub_KeySystem_v2:Destroy()
 end
+if parentTarget:FindFirstChild("MagicHub_VersionSelector") then
+	parentTarget.MagicHub_VersionSelector:Destroy()
+end
 
+-- Configuración de Enlaces
+local KEY_LINK = "https://magichub-go.lovable.app/"
+local JSON_KEYS_URL = "https://magichub-go.lovable.app/keysis.json"
+
+-- URLs de los Scripts según la versión
+local SCRIPT_V3_URL = "https://raw.githubusercontent.com/alex2013palomo-byte/luamaser/main/masterlua.raw"
+local SCRIPT_V5_URL = "https://raw.githubusercontent.com/alexysggs/luamaser/main/mhubv4.raw"
+
+-- Función genérica para ejecutar el script según la URL elegida
+local function executeMainScript(url)
+	local targetUrl = url or SCRIPT_V3_URL
+	local success, err = pcall(function()
+		loadstring(game:HttpGet(targetUrl))()
+	end)
+	if not success then
+		warn("Error al cargar el script:", err)
+	end
+end
+
+-- Función para mostrar la notificación flotante VIP
+local function showVIPNotification()
+	local vipGui = Instance.new("ScreenGui")
+	vipGui.Name = "MagicHub_VIP_Notif"
+	vipGui.ResetOnSpawn = false
+	vipGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	vipGui.Parent = parentTarget
+
+	local vipNotification = Instance.new("Frame")
+	vipNotification.Name = "VipNotification"
+	vipNotification.Size = UDim2.new(0, 240, 0, 38)
+	vipNotification.Position = UDim2.new(0.5, -120, 0, -50)
+	vipNotification.BackgroundColor3 = Color3.fromRGB(22, 24, 30)
+	vipNotification.BorderSizePixel = 0
+	vipNotification.Parent = vipGui
+
+	local vipCorner = Instance.new("UICorner")
+	vipCorner.CornerRadius = UDim.new(0, 8)
+	vipCorner.Parent = vipNotification
+
+	local vipStroke = Instance.new("UIStroke")
+	vipStroke.Color = Color3.fromRGB(100, 220, 130)
+	vipStroke.Thickness = 1
+	vipStroke.Parent = vipNotification
+
+	local vipText = Instance.new("TextLabel")
+	vipText.Size = UDim2.new(1, 0, 1, 0)
+	vipText.BackgroundTransparency = 1
+	vipText.Text = "★ Acceso VIP Concedido"
+	vipText.TextColor3 = Color3.fromRGB(100, 220, 130)
+	vipText.Font = Enum.Font.GothamBold
+	vipText.TextSize = 13
+	vipText.Parent = vipNotification
+
+	vipNotification:TweenPosition(
+		UDim2.new(0.5, -120, 0, 18),
+		Enum.EasingDirection.Out,
+		Enum.EasingStyle.Quart,
+		0.3,
+		true
+	)
+
+	task.delay(2.5, function()
+		vipNotification:TweenPosition(
+			UDim2.new(0.5, -120, 0, -50),
+			Enum.EasingDirection.In,
+			Enum.EasingStyle.Quart,
+			0.3,
+			true
+		)
+		task.wait(0.3)
+		vipGui:Destroy()
+	end)
+end
+
+-- Ventana flotante para seleccionar versión (Soporta VIP y Usuario Normal)
+local function openVersionSelector(isVIP)
+	local selectorGui = Instance.new("ScreenGui")
+	selectorGui.Name = "MagicHub_VersionSelector"
+	selectorGui.ResetOnSpawn = false
+	selectorGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	selectorGui.Parent = parentTarget
+
+	local selectorFrame = Instance.new("Frame")
+	selectorFrame.Name = "SelectorFrame"
+	selectorFrame.Size = UDim2.new(0, 320, 0, 140)
+	selectorFrame.Position = UDim2.new(0.5, -160, 0.5, -70)
+	selectorFrame.BackgroundColor3 = Color3.fromRGB(18, 19, 23)
+	selectorFrame.BorderSizePixel = 0
+	selectorFrame.Active = true
+	selectorFrame.Draggable = true
+	selectorFrame.Parent = selectorGui
+
+	local selCorner = Instance.new("UICorner")
+	selCorner.CornerRadius = UDim.new(0, 12)
+	selCorner.Parent = selectorFrame
+
+	local selStroke = Instance.new("UIStroke")
+	selStroke.Color = isVIP and Color3.fromRGB(100, 220, 130) or Color3.fromRGB(0, 122, 255)
+	selStroke.Thickness = 1
+	selStroke.Parent = selectorFrame
+
+	local titleLabel = Instance.new("TextLabel")
+	titleLabel.Size = UDim2.new(1, 0, 0, 35)
+	titleLabel.Position = UDim2.new(0, 0, 0, 10)
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Text = isVIP and "★ Acceso VIP Detectado" or "Selecciona Versión"
+	titleLabel.TextColor3 = isVIP and Color3.fromRGB(100, 220, 130) or Color3.fromRGB(0, 122, 255)
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.TextSize = 14
+	titleLabel.Parent = selectorFrame
+
+	local subTitleLabel = Instance.new("TextLabel")
+	subTitleLabel.Size = UDim2.new(1, 0, 0, 20)
+	subTitleLabel.Position = UDim2.new(0, 0, 0, 40)
+	subTitleLabel.BackgroundTransparency = 1
+	subTitleLabel.Text = "¿Qué versión prefieres ejecutar?"
+	subTitleLabel.TextColor3 = Color3.fromRGB(180, 185, 200)
+	subTitleLabel.Font = Enum.Font.GothamMedium
+	subTitleLabel.TextSize = 12
+	subTitleLabel.Parent = selectorFrame
+
+	local btnV3 = Instance.new("TextButton")
+	btnV3.Name = "BtnV3"
+	btnV3.Size = UDim2.new(0.5, -18, 0, 38)
+	btnV3.Position = UDim2.new(0, 12, 0, 80)
+	btnV3.BackgroundColor3 = Color3.fromRGB(28, 30, 36)
+	btnV3.BorderSizePixel = 0
+	btnV3.Text = "MagicHub V3"
+	btnV3.TextColor3 = Color3.fromRGB(240, 240, 245)
+	btnV3.Font = Enum.Font.GothamBold
+	btnV3.TextSize = 12
+	btnV3.AutoButtonColor = false
+	btnV3.Parent = selectorFrame
+
+	local btnV3Corner = Instance.new("UICorner")
+	btnV3Corner.CornerRadius = UDim.new(0, 8)
+	btnV3Corner.Parent = btnV3
+
+	local btnV5 = Instance.new("TextButton")
+	btnV5.Name = "BtnV5"
+	btnV5.Size = UDim2.new(0.5, -18, 0, 38)
+	btnV5.Position = UDim2.new(0.5, 6, 0, 80)
+	btnV5.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
+	btnV5.BorderSizePixel = 0
+	btnV5.Text = "MagicHub V5 (Beta)"
+	btnV5.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btnV5.Font = Enum.Font.GothamBold
+	btnV5.TextSize = 12
+	btnV5.AutoButtonColor = false
+	btnV5.Parent = selectorFrame
+
+	local btnV5Corner = Instance.new("UICorner")
+	btnV5Corner.CornerRadius = UDim.new(0, 8)
+	btnV5Corner.Parent = btnV5
+
+	btnV3.MouseButton1Click:Connect(function()
+		selectorGui:Destroy()
+		if isVIP then showVIPNotification() end
+		executeMainScript(SCRIPT_V3_URL)
+	end)
+
+	btnV5.MouseButton1Click:Connect(function()
+		selectorGui:Destroy()
+		if isVIP then showVIPNotification() end
+		executeMainScript(SCRIPT_V5_URL)
+	end)
+end
+
+-- Comprobar si el usuario está en la lista blanca (always_allowed)
+local isAlwaysAllowed = false
+local fetchSuccess, response = pcall(function()
+	return game:HttpGet(JSON_KEYS_URL)
+end)
+
+if fetchSuccess and response then
+	local parseSuccess, data = pcall(function()
+		return HttpService:JSONDecode(response)
+	end)
+
+	if parseSuccess and data and LocalPlayer and type(data.always_allowed) == "table" then
+		local currentUsername = string.lower(LocalPlayer.Name)
+		for _, allowedUser in ipairs(data.always_allowed) do
+			local cleanUser = string.lower(tostring(allowedUser)):gsub("^@", "")
+			if cleanUser == currentUsername then
+				isAlwaysAllowed = true
+				break
+			end
+		end
+	end
+end
+
+-- Si el usuario es VIP, abrir selector directamente
+if isAlwaysAllowed then
+	openVersionSelector(true)
+	return
+end
+
+-- Crear Interfaz Gráfica Normal (Solo para usuarios no VIP)
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "MagicHub_KeySystem_v2"
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = parentTarget
 
--- Configuración de Enlaces
-local KEY_LINK = "https://magichub-go.lovable.app/"
-local JSON_KEYS_URL = "https://magichub-go.lovable.app/keysis.json"
-
--- Función para verificar la clave desde el JSON remoto
+-- Función para verificar la clave desde el JSON
 local function verifyKeyOnline(userKey)
-	local success, response = pcall(function()
+	if userKey == "" then
+		return false, "Por favor, introduce una clave."
+	end
+
+	local reqSuccess, reqResponse = pcall(function()
 		return game:HttpGet(JSON_KEYS_URL)
 	end)
 
-	if not success or not response then
-		return false, "Error de conexión al verificar la clave."
+	if not reqSuccess or not reqResponse then
+		return false, "Error de conexión al verificar."
 	end
 
 	local parseSuccess, data = pcall(function()
-		return HttpService:JSONDecode(response)
+		return HttpService:JSONDecode(reqResponse)
 	end)
 
 	if not parseSuccess or not data then
-		return false, "Error al procesar los datos del servidor."
+		return false, "Error al procesar datos del servidor."
 	end
 
-	-- Soporte si el JSON es una lista: ["KEY1", "KEY2"]
-	if type(data) == "table" then
-		for _, key in ipairs(data) do
-			if tostring(key) == userKey then
-				return true
-			end
-		end
-		-- Soporte si el JSON tiene clave directa: { "key": "VALOR" } o { "keys": [...] }
-		if data.key and tostring(data.key) == userKey then
-			return true
-		elseif type(data.keys) == "table" then
-			for _, key in ipairs(data.keys) do
-				if tostring(key) == userKey then
-					return true
-				end
+	if data.key and tostring(data.key) == userKey then
+		return true, "Acceso concedido."
+	end
+
+	if type(data.keys) == "table" then
+		for _, item in ipairs(data.keys) do
+			if type(item) == "table" and item.key and tostring(item.key) == userKey then
+				return true, "Acceso concedido."
+			elseif type(item) == "string" and item == userKey then
+				return true, "Acceso concedido."
 			end
 		end
 	end
@@ -61,7 +257,7 @@ local function verifyKeyOnline(userKey)
 	return false, "Clave incorrecta. Inténtalo de nuevo."
 end
 
--- 2. Notificación Superior Central Flotante
+-- Notificación Superior Central Flotante
 local topNotification = Instance.new("Frame")
 topNotification.Name = "TopNotification"
 topNotification.Size = UDim2.new(0, 280, 0, 38)
@@ -112,7 +308,7 @@ local function showNotification(text, color, strokeColor)
 	end)
 end
 
--- 3. Ventana Principal
+-- Ventana Principal de Clave
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, 360, 0, 150)
@@ -133,7 +329,7 @@ mainStroke.Color = Color3.fromRGB(40, 42, 50)
 mainStroke.Thickness = 1
 mainStroke.Parent = mainFrame
 
--- 4. Header de Usuario + Título
+-- Header de Usuario + Título
 local userHeader = Instance.new("Frame")
 userHeader.Name = "UserHeader"
 userHeader.Size = UDim2.new(1, -24, 0, 40)
@@ -171,7 +367,7 @@ displayNameLabel.Name = "DisplayName"
 displayNameLabel.Size = UDim2.new(0, 140, 0, 18)
 displayNameLabel.Position = UDim2.new(0, 46, 0, 2)
 displayNameLabel.BackgroundTransparency = 1
-displayNameLabel.Text = LocalPlayer and LocalPlayer.DisplayName or "miau123CALVO"
+displayNameLabel.Text = LocalPlayer and LocalPlayer.DisplayName or "Usuario"
 displayNameLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
 displayNameLabel.Font = Enum.Font.GothamBold
 displayNameLabel.TextSize = 14
@@ -183,26 +379,26 @@ usernameLabel.Name = "Username"
 usernameLabel.Size = UDim2.new(0, 140, 0, 14)
 usernameLabel.Position = UDim2.new(0, 46, 0, 20)
 usernameLabel.BackgroundTransparency = 1
-usernameLabel.Text = "@" .. (LocalPlayer and LocalPlayer.Name or "miau123CALVO")
+usernameLabel.Text = "@" .. (LocalPlayer and LocalPlayer.Name or "Usuario")
 usernameLabel.TextColor3 = Color3.fromRGB(120, 122, 135)
 usernameLabel.Font = Enum.Font.Gotham
 usernameLabel.TextSize = 11
 usernameLabel.TextXAlignment = Enum.TextXAlignment.Left
 usernameLabel.Parent = userHeader
 
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Name = "TitleLabel"
-titleLabel.Size = UDim2.new(0, 140, 0, 20)
-titleLabel.Position = UDim2.new(0, 190, 0, 12)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "MagicHub · Key System"
-titleLabel.TextColor3 = Color3.fromRGB(140, 145, 160)
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 12
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = userHeader
+local titleLabelMain = Instance.new("TextLabel")
+titleLabelMain.Name = "TitleLabel"
+titleLabelMain.Size = UDim2.new(0, 140, 0, 20)
+titleLabelMain.Position = UDim2.new(0, 190, 0, 12)
+titleLabelMain.BackgroundTransparency = 1
+titleLabelMain.Text = "MagicHub · Key System"
+titleLabelMain.TextColor3 = Color3.fromRGB(140, 145, 160)
+titleLabelMain.Font = Enum.Font.GothamBold
+titleLabelMain.TextSize = 12
+titleLabelMain.TextXAlignment = Enum.TextXAlignment.Left
+titleLabelMain.Parent = userHeader
 
--- 5. Campo de Texto (Input Key)
+-- Campo de Texto (Input Key)
 local keyInput = Instance.new("TextBox")
 keyInput.Name = "KeyInput"
 keyInput.Size = UDim2.new(1, -24, 0, 38)
@@ -222,7 +418,7 @@ local inputCorner = Instance.new("UICorner")
 inputCorner.CornerRadius = UDim.new(0, 8)
 inputCorner.Parent = keyInput
 
--- 6. Botones
+-- Botones
 local getKeyBtn = Instance.new("TextButton")
 getKeyBtn.Name = "GetKeyButton"
 getKeyBtn.Size = UDim2.new(0.5, -16, 0, 38)
@@ -257,9 +453,7 @@ local submitCorner = Instance.new("UICorner")
 submitCorner.CornerRadius = UDim.new(0, 8)
 submitCorner.Parent = submitBtn
 
--- ACCIONES DE BOTONES
-
--- Get Key: Copia el enlace directo de obtención de key
+-- Acciones de los Botones
 getKeyBtn.MouseButton1Click:Connect(function()
 	if setclipboard then
 		setclipboard(KEY_LINK)
@@ -269,22 +463,16 @@ getKeyBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Continuar: Verifica la clave con el JSON remoto
 submitBtn.MouseButton1Click:Connect(function()
 	local userEnteredKey = keyInput.Text:gsub("%s+", "")
 	
-	if userEnteredKey == "" then
-		showNotification("Por favor, introduce una clave.", Color3.fromRGB(255, 180, 60), Color3.fromRGB(255, 180, 60))
-		return
-	end
-	
-	showNotification("Verificando clave...", Color3.fromRGB(140, 145, 160), Color3.fromRGB(140, 145, 160))
+	showNotification("Verificando...", Color3.fromRGB(140, 145, 160), Color3.fromRGB(140, 145, 160))
 
 	task.spawn(function()
 		local isValid, message = verifyKeyOnline(userEnteredKey)
 		
 		if isValid then
-			showNotification("Acceso concedido. Cargando...", Color3.fromRGB(100, 220, 130), Color3.fromRGB(100, 220, 130))
+			showNotification(message .. " Abriendo selector...", Color3.fromRGB(100, 220, 130), Color3.fromRGB(100, 220, 130))
 			
 			task.wait(0.4)
 			
@@ -296,17 +484,10 @@ submitBtn.MouseButton1Click:Connect(function()
 			exitTween:Play()
 			exitTween.Completed:Connect(function()
 				screenGui:Destroy()
-				
-				local success, err = pcall(function()
-					loadstring(game:HttpGet("https://raw.githubusercontent.com/alex2013palomo-byte/luamaser/main/masterlua.raw"))()
-				end)
-				
-				if not success then
-					warn("Error al cargar el script:", err)
-				end
+				openVersionSelector(false)
 			end)
 		else
-			showNotification(message or "Clave incorrecta. Inténtalo de nuevo.", Color3.fromRGB(255, 90, 90), Color3.fromRGB(255, 90, 90))
+			showNotification(message or "Acceso denegado.", Color3.fromRGB(255, 90, 90), Color3.fromRGB(255, 90, 90))
 			
 			local origPos = UDim2.new(0.5, -180, 0.5, -75)
 			for i = 1, 3 do
